@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+  <head>
+        
+    <meta charset="utf-8" />
+        
+    <meta name="viewport" content="width=device-width" />
+        
+    <title>Список пользователей</title>
+        
+    <link
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+        
+    <h2>Список пользователей</h2>
+        
+    <form name="userForm">
+      <input name="id" id="id" value="0" />         
+      <div class="form-group">
+         <label for="name">Имя:</label>             
+         <input class="form-control" name="name" />
+                
+      </div>
+              
+      <div class="form-group">
+          <label for="age">Возраст:</label>             
+          <input
+          class="form-control"
+          name="age"
+        />
+                
+      </div>
+              
+      <div class="panel-body">
+        <button type="submit" class="btn btn-sm btn-primary">
+          Сохранить
+        </button>
+        <a id="reset" class="btn btn-sm btn-primary">Сбросить</a>
+                
+      </div>
+          
+    </form>
+        
+    <table class="table table-condensed table-striped table-bordered">
+              
+      <thead>
+        <tr>
+          <th>Id</th>
+          <th>Имя</th>
+          <th>Возраст</th>
+          <th></th>
+        </tr>
+      </thead>
+              
+      <tbody>
+                
+      </tbody>
+          
+    </table>
+           
+    <script>
+      const tableBody = document.querySelector("tbody");
+      const addForm = document.forms["userForm"];
+
+      addForm.addEventListener("submit", event => {
+        event.preventDefault();
+
+        const name = addForm.elements["name"].value;
+        const age = addForm.elements["age"].value;
+        const id = document.getElementById("id").value;
+        if(id == 0) {
+          createUser(name, age);
+        } else {
+          updateUser(id, name, age);
+        }
+        resetForm();
+      });
+
+      async function getUsers() {
+        const response = await fetch("/api/users")
+
+        if(response.ok){
+          const users = await response.json();
+
+          users.forEach(user => {
+            tableBody.append(row(user));
+          });
+        };
+      };
+      
+      async function createUser(name, age) {
+        const response = await fetch("/api/users", {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-type": "application/json",
+          },
+          body: JSON.stringify({
+            name,
+            age,
+          }),
+        });
+
+        if(response.ok) {
+          const user = await response.json();
+          tableBody.append(row(user));
+        };
+      };
+
+      async function getUser(userId) {
+        const response = await fetch("/api/users/" + userId);
+        if(response.ok) {
+          const user = await response.json();
+          addForm.elements["name"].value = user.name;
+          addForm.elements["age"].value = user.age;
+          addForm.elements["id"].value = user.id;
+        };
+      };
+
+      async function updateUser(id, name, age) {
+        const response = await fetch("/api/users/" + id, {
+          method: "PUT",
+          headers: {
+            Accept: "application/json",
+            "Content-type": "application/json",
+          },
+          body: JSON.stringify({
+            name,
+            id,
+            age,
+          }),
+        });
+
+        if (response.ok) {
+          const user = await response.json();
+
+          resetForm()
+        document
+          .querySelector("tr[data-rowid='" + user.id + "'j")
+          .replaceWith(row(user));
+        }; 
+      };
+
+      async function deleteUser(id) {
+        const response = await fetch("/api/users/" + id, {
+          method: "DELETE",
+        });
+        const user = await response.json();
+      };
+
+      function resetForm() {
+        addForm.reset()
+      };
+
+      function row(user) {
+        const tr = document.createElement("tr");
+        tr.setAttribute("data-rowid", user.id);
+        const idTd = document.createElement("td");
+        idTd.append(user.id);
+        tr.append(idTd);
+        const nameTd = document.createElement("td");
+        nameTd.append(user.name);
+        tr.append(nameTd);
+        const ageTd = document.createElement("td");
+        ageTd.append(user.age);
+        tr.append(ageTd);
+        const linksTd = document.createElement("td");
+        const editLink = document.createElement("a");
+        editLink.setAttribute("data-id", user.id);
+        editLink.setAttribute("style", "cursor:pointer;padding:15px;");
+        editLink.append("Изменить");
+        editLink.addEventListener("click", (e) => {
+          e.preventDefault();
+          getUser(user.id);
+        });
+        linksTd.append(editLink);
+        const removeLink = document.createElement("a");
+        removeLink.setAttribute("data-id", user.id);
+        removeLink.setAttribute("style", "cursor:pointer;padding:15px;");
+        removeLink.append("Удалить");
+        removeLink.addEventListener("click", (e) => {
+          e.preventDefault();
+          deleteUser(user.id);
+        });
+        linksTd.append(removeLink);
+        tr.appendChild(linksTd);
+        return tr;
+      } // сброс значений формы
+
+
+      getUsers();
+
+    </script>
+  </body>
+</html>
